@@ -83,6 +83,7 @@
         my ($e, $w) = @_[3..4];
         my ($s, $n) = @_[5..6];
         my ($se, $nw) = @_[7..8];
+        my ($sw, $ne) = @_[9..10];
         if ($e || $w) {
             my $segmnt = join "", $_[0]->bd->[$position->[0]]->@*;
             $_[0]->bd->[$position->[0]]->@* = split "", $_[0]->modify($segmnt, $player, $position->[1], $e, $w);
@@ -92,7 +93,20 @@
             my @arr = split "", $_[0]->modify($segmnt, $player, $position->[0], $s, $n);
             $_[0]->bd->[$_][$position->[1]] = $arr[$_] for (0..$len-1);
         }
-        
+        if ($se || $nw) {
+            my $diff = $position->[1]-$position->[0];
+            my ($startx, $starty) = $diff >= 0 ? (0, $diff) : (abs($diff), 0);
+            my $segmnt = join "", map {$_[0]->bd->[$_+$startx][$_+$starty]} (0..$len-1-abs($diff));
+            my @arr = split "", $_[0]->modify($segmnt, $player, $diff>=0? $position->[0]: $position->[1], $se, $nw); 
+            $_[0]->bd->[$_+$startx][$_+$starty] = $arr[$_] for (0..$len-1-abs($diff));
+        }
+        if ($ne || $sw) {
+            my $sum = $position->[1]+$position->[0];
+            my ($startx, $starty) = $sum <= 5 ? ($sum, 0) : (5, $sum-5);
+            my $segmnt = join "", map {$_[0]->bd->[$startx-$_][$starty+$_]} (0..$len-1-abs(5-$sum));
+            my @arr = split "", $_[0]->modify($segmnt, $player, 5>=$sum? $position->[1]: (5-$position->[0]) , $sw, $ne);
+            $_[0]->bd->[$startx-$_][$starty+$_] = $arr[$_] for (0..$len-1-abs(5-$sum));
+        }
     }
 
     sub modify {
@@ -100,15 +114,15 @@
         my $player = $_[2];
         my $alt_player = $_[2] eq 'x' ? 'o' : 'x';
         my $pos = $_[3];
-        my $down = $_[4];
-        my $up = $_[5];
-        my $len = $_[0]->length;
+        my $r = $_[4];
+        my $l = $_[5];
+        my $len = length $segmnt;
         my @arr = split "", $segmnt;
-        if ($down) {
+        if ($r) {
             my $j = index($segmnt, $player, $pos+2 );
             $arr[$_] = $player for ($pos .. $j-1);
         }
-        if ($up) {
+        if ($l) {
             my $rsegmnt = scalar reverse $segmnt;
             my $rpos = $len - $pos - 1;
             my $j = $len - index($rsegmnt, $player, $rpos+2 ) - 1;
@@ -116,6 +130,9 @@
         }
         return join "", @arr;
     }
+
+
+    # todo: available_nxt
 
 
 }
@@ -127,9 +144,18 @@ say $hello->length;
 say $hello->bd->[3][3];
 $hello->view;
 $hello->make_move('x', [3,4], 0, 1, 0, 0);  #e4
-#$hello->make_move('x', [2,1], 1, 0, 0, 0);  #b3
 $hello->view;
 $hello->make_move('o', [4,2], 0, 0, 0, 1);  #c5
 $hello->view;
 $hello->make_move('x', [3,1], 1, 0, 0, 0);  #b4
+$hello->view;
+$hello->make_move('o', [4,4], 0, 0, 0, 0, 0, 1);  #e5
+$hello->view;
+$hello->make_move('x', [4,3], 0, 0, 0, 1, 0, 0);  #d5
+$hello->view;
+$hello->make_move('o', [2,4], 0, 1, 1, 0, 0, 0, 0 ,1);  #e3
+$hello->view;
+$hello->make_move('x', [1,3], 0, 0, 1, 0, 0, 0, 0 ,1);  #d2
+$hello->view;
+$hello->make_move('o', [1,2], 0, 0, 1, 0, 1, 0, 0 ,0);  #c2
 $hello->view;
