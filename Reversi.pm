@@ -4,14 +4,14 @@ use v5.10.0;
 use strict;
 use warnings;
 use Carp;
-use List::Util qw/none/;
+use List::Util qw/none all sum/;
 use feature 'say';
 
 my $default_board_len = 8;
 
 sub default_board_len {
     croak "Board length should be an even integer only.\n" if $_[1] % 2 != 0;
-    $default_board_len = $_[1] || $default_board_len;
+    $default_board_len = $_[1];
     return $default_board_len;
 }
 
@@ -32,6 +32,7 @@ sub new {
     bless {
         _length => $len,
         _bd => $board,
+        _game_over => 0,
     }, $class;
 } 
 
@@ -39,8 +40,35 @@ sub bd {
     $_[0]->{_bd};
 }
 
+sub wpieces {
+    my $len = $_[0]->len;
+    my $player = $_[1];
+    return grep {$_[1] eq $_[0]->bd->[$_ / $len][$_ % $len]} 
+            (0..$len*$len-1)
+}
+
+
 sub len {
     $_[0]->{_length};
+}
+
+sub game_over {
+    my $len = $_[0]->len;
+    if ( $_[0]->wpieces('.') == 0 ) {
+        $_[0]->{_game_over} = 1;
+    }
+    elsif (( none 
+          {sum($_[0]->available_dir('x', [int $_ / $len, $_ % $len])->@* != 0)}
+          (0..$len*$len-1) ) &&
+        ( none 
+          {sum($_[0]->available_dir('o', [int $_ / $len, $_ % $len])->@* != 0)}
+          (0..$len*$len-1) )) {
+        $_[0]->{_game_over} = 1;
+    }
+    elsif ( $_[0]->wpieces('x') == 0 || $_[0]->wpieces('o') == 0) {
+        $_[0]->{_game_over} = 1;
+    }
+    return $_[0]->{_game_over};
 }
 
 sub board {
@@ -131,7 +159,6 @@ sub modify {
 }
 
 
-# todo: available_nxt
 sub available_dir {
     my $player = $_[1];
     my $alt = $_[1] eq 'x' ? 'o' : 'x';
@@ -139,6 +166,7 @@ sub available_dir {
     my $len = $_[0]->len;
     my $num_pos = $position->[0];
     my $alp_pos = $position->[1];
+    return [] if $_[0]->bd->[$num_pos][$alp_pos] ne '.';
     my $hori = join "", $_[0]->bd->[$num_pos]->@*;
     my $vert = join "", map {$_[0]->bd->[$_][$alp_pos]} (0..$len-1);
     my $diff = $alp_pos-$num_pos;
@@ -168,6 +196,31 @@ sub make_move {
     my @dir = $_[0]->available_dir($player, $position)->@*;
     croak "Cannot move here!\n" if none {$_ == 1} @dir;
     $_[0]->_make_move($player, $position, @dir);
+}
+
+
+sub bd2str {
+    croak "Method only for 6x6 board!\n" if $_[0]->len != 6;
+    my $len = $_[0]->len;
+    my @abc = ('0'..'9', 'a'..'z');
+    my $ans = "B";
+    for (0..35) {
+        $ans .= $abc[$_] if $_[0]->bd->[int $_ / $len][$_ % $len] eq 'x';
+    }
+    $ans .= "W";
+    for (0..35) {
+        $ans .= $abc[$_] if $_[0]->bd->[int $_ / $len][$_ % $len] eq 'o';
+    }
+    return $ans;
+}
+
+sub available_moves {
+    my $player = $_[1];
+    my $len = $_[0]->len;
+    my @init_arr = grep {sum($_[0]->available_dir(
+            $player, [int $_ / $len, $_ % $len]
+          )->@* != 0)} (0..$len*$len-1);
+    return [map { [ int $_ / $len, $_ % $len ] } @init_arr];
 }
 
 1;
