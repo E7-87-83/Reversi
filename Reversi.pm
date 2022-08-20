@@ -54,14 +54,15 @@ sub len {
 
 sub game_over {
     my $len = $_[0]->len;
+    $_[0]->{_game_over} = 0;
     if ( $_[0]->wpieces('.') == 0 ) {
         $_[0]->{_game_over} = 1;
     }
     elsif (( none 
-          {sum($_[0]->available_dir('x', [int $_ / $len, $_ % $len])->@* != 0)}
+          {sum($_[0]->available_dir('x', [int $_ / $len, $_ % $len])->@*) != 0}
           (0..$len*$len-1) ) &&
         ( none 
-          {sum($_[0]->available_dir('o', [int $_ / $len, $_ % $len])->@* != 0)}
+          {sum($_[0]->available_dir('o', [int $_ / $len, $_ % $len])->@*) != 0}
           (0..$len*$len-1) )) {
         $_[0]->{_game_over} = 1;
     }
@@ -166,7 +167,7 @@ sub available_dir {
     my $len = $_[0]->len;
     my $num_pos = $position->[0];
     my $alp_pos = $position->[1];
-    return [] if $_[0]->bd->[$num_pos][$alp_pos] ne '.';
+    return [0,0,0,0,0,0,0,0] if $_[0]->bd->[$num_pos][$alp_pos] ne '.';
     my $hori = join "", $_[0]->bd->[$num_pos]->@*;
     my $vert = join "", map {$_[0]->bd->[$_][$alp_pos]} (0..$len-1);
     my $diff = $alp_pos-$num_pos;
@@ -192,10 +193,17 @@ sub available_dir {
 sub make_move {
     my $player = $_[1];
     my $position = $_[2];
-    croak "Here already occupied!\n" if $_[0]->bd->[$position->[0]][$position->[1]] ne '.';
+    if ($_[0]->bd->[$position->[0]][$position->[1]] ne '.') {
+        croak "Here already occupied!\n"; 
+        return 0;
+    }
     my @dir = $_[0]->available_dir($player, $position)->@*;
-    croak "Cannot move here!\n" if none {$_ == 1} @dir;
+    if (none {$_ == 1} @dir) {
+        croak "Cannot move here!\n";
+        return 0;
+    }
     $_[0]->_make_move($player, $position, @dir);
+    return 1;
 }
 
 
@@ -219,8 +227,13 @@ sub available_moves {
     my $len = $_[0]->len;
     my @init_arr = grep {sum($_[0]->available_dir(
             $player, [int $_ / $len, $_ % $len]
-          )->@* != 0)} (0..$len*$len-1);
+          )->@*) != 0} (0..$len*$len-1);
     return [map { [ int $_ / $len, $_ % $len ] } @init_arr];
+}
+
+sub posit {
+    my $p = $_[1];
+    return chr(ord('a')+$p->[1]) . (1+$p->[0]);
 }
 
 1;
