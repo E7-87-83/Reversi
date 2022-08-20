@@ -130,10 +130,11 @@ sub _make_move {
     }
     if ($ne || $sw) {
         my $sum = $position->[1]+$position->[0];
-        my ($startx, $starty) = $sum <= 5 ? ($sum, 0) : (5, $sum-5);
-        my $segmnt = join "", map {$_[0]->bd->[$startx-$_][$starty+$_]} (0..$len-1-abs(5-$sum));
-        my @arr = split "", $_[0]->modify($segmnt, $player, 5>=$sum? $position->[1]: 5-$position->[0] , $sw, $ne);
-        $_[0]->bd->[$startx-$_][$starty+$_] = $arr[$_] for (0..$len-1-abs(5-$sum));
+        my $ken = $len-1;
+        my ($startx, $starty) = $sum <= $ken ? ($sum, 0) : ($ken, $sum-$ken);
+        my $segmnt = join "", map {$_[0]->bd->[$startx-$_][$starty+$_]} (0..$len-1-abs($ken-$sum));
+        my @arr = split "", $_[0]->modify($segmnt, $player, $ken>=$sum? $position->[1]: $ken-$position->[0] , $sw, $ne);
+        $_[0]->bd->[$startx-$_][$starty+$_] = $arr[$_] for (0..$len-1-abs($ken-$sum));
     }
 }
 
@@ -165,6 +166,7 @@ sub available_dir {
     my $alt = $_[1] eq 'x' ? 'o' : 'x';
     my $position = $_[2];
     my $len = $_[0]->len;
+    my $ken = $len - 1;
     my $num_pos = $position->[0];
     my $alp_pos = $position->[1];
     return [0,0,0,0,0,0,0,0] if $_[0]->bd->[$num_pos][$alp_pos] ne '.';
@@ -175,9 +177,9 @@ sub available_dir {
     my $diag = join "", map {$_[0]->bd->[$_+$astartx][$_+$astarty]} (0..$len-1-abs($diff));
     my $d_pos = $diff >= 0 ? $num_pos : $alp_pos;
     my $sum = $alp_pos+$num_pos;
-    my ($startx, $starty) = $sum <= 5 ? ($sum, 0) : (5, $sum-5);
-    my $andi = join "", map {$_[0]->bd->[$startx-$_][$starty+$_]} (0..$len-1-abs(5-$sum));
-    my $a_pos = 5 >= $sum ? $alp_pos : 5-$num_pos;
+    my ($startx, $starty) = $sum <= $ken ? ($sum, 0) : ($ken, $sum-$ken);
+    my $andi = join "", map {$_[0]->bd->[$startx-$_][$starty+$_]} (0..$len-1-abs($ken-$sum));
+    my $a_pos = $ken >= $sum ? $alp_pos : $ken-$num_pos;
     return [ 
         substr($hori,$alp_pos+1) =~ /^$alt+$player/ ? 1 : 0,
         substr($hori,0,$alp_pos) =~ /$player$alt+$/ ? 1 : 0, 
